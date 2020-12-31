@@ -12,13 +12,13 @@ typedef dist_t result_t;
 inline
 cudaError_t checkCuda(cudaError_t result)
 {
-#if defined(DEBUG) || defined(_DEBUG)
+//#if defined(DEBUG) || defined(_DEBUG)
     if (result != cudaSuccess) {
         fprintf(stderr, "CUDA Runtime Error: %s\n",
                 cudaGetErrorString(result));
         assert(result == cudaSuccess);
     }
-#endif
+//#endif
     return result;
 }
 
@@ -35,12 +35,13 @@ __global__ void upper_diagonal(const char *seq1, const char *seq2, unsigned int 
     }
 }
 
+// TODO debug the lower dimensional
 __global__ void lower_diagonal(const char *seq1, const char *seq2, unsigned int len, unsigned int l, result_t *d0, result_t* d1, result_t* d2) {
     auto i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i<=0 or i>=l) {
         d2[i] = l;
     } else {
-        result_t t = seq1[i-1]!=seq2[l-i-1];
+        result_t t = seq1[len-i+1]!=seq2[len-l+i+1];
         d2[i] = MIN(t + d0[i-1], MIN(d1[i],d1[i-1])+1 );
     }
 }
@@ -72,8 +73,8 @@ void levenshtein_distance(char *s1, char *s2, unsigned int l1, unsigned int l2, 
 
 int main() {
     uint64_t blocksize = 128;
-    uint64_t len = (1<<14);
-    unsigned int alphpabet_size = 4;
+    uint64_t len = (1<<16);
+    unsigned int alphpabet_size = 20;
 
     // load sequences into pinnable memory
     char *h1, *h2;
@@ -98,11 +99,12 @@ int main() {
     std::clock_t c_start, c_end;
 
 
-    result_t *d0, *d1, *d2, *tmp;
+    result_t *mem, *d0, *d1, *d2, *tmp;
     uint64_t pitch = len + blocksize;                       // pad distances by at least blocksize
     bytes = 3* pitch * sizeof(result_t) ;                   // allocate 3 x pitch * size type
-    checkCuda( cudaMalloc(&d0, bytes) );       // allocate on unified memory
-    checkCuda(cudaMemset(d0, 2* len, bytes));   // initialize distances to maximum value 2*len
+    checkCuda( cudaMalloc(&mem, bytes) );       // allocate on unified memory
+    checkCuda(cudaMemset(mem, 2* len, bytes));   // initialize distances to maximum value 2*len
+    d0 = mem;
     d1 = d0 + pitch;
     d2 = d1 + pitch;
 
@@ -116,11 +118,25 @@ int main() {
         checkCuda( cudaDeviceSynchronize() );
         tmp = d0; d0 = d1; d1 = d2; d2 = tmp;
     }
-    dist_t *d_host;
+    dist_t *d_host, *d_host2;
     bytes = (len+1)* sizeof (dist_t);
-    cudaMallocHost(&d_host, bytes);
-    checkCuda( cudaMemcpy(d_host, d1, bytes, cudaMemcpyHostToDevice) );
+    checkCuda( cudaMallocHost(&d_host, bytes) );
+    checkCuda( cudaMemcpy(d_host, d1, bytes, cudaMemcpyDeviceToHost) );
+    checkCuda(cudaMemset(mem, 2* len, bytes));   // initialize distances to maximum value 2*len
 
+    for (l=0; l<=len; l++) {
+        lower_diagonal<<< (l + blocksize) / blocksize, blocksize >>>(s1, s2, len, l, d0, d1, d2);
+        checkCuda( cudaDeviceSynchronize() );
+        tmp = d0; d0 = d1; d1 = d2; d2 = tmp;
+    }
+    checkCuda( cudaMallocHost(&d_host2, bytes) );
+    checkCuda( cudaMemcpy(d_host2, d1, bytes, cudaMemcpyDeviceToHost) );
+    result_t result = 2 * len;
+    for (unsigned int i=0; i<=len; i++) {
+        result = MIN(result, d_host[i]+d_host2[i]);
+    }
+
+    printf("edit dist CUDA: %f\n", result);
     auto gpu_time = 1.0 * (std::clock()-c_start) / CLOCKS_PER_SEC;
     printf("GPU time: %f s\n", gpu_time);
 
