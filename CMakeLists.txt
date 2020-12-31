@@ -3,9 +3,9 @@ project(untitled CUDA)
 
 set(CMAKE_CUDA_STANDARD 14)
 
-add_executable(main main.cu)
+add_executable(main main.cu cpu_edit_dist.cpp)
 
-add_executable(par_edit par_ed.cu)
+add_executable(par_edit cuda_edit_dist.cu)
 
 add_executable(query query.cu )
 

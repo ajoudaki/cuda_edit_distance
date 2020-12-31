@@ -182,6 +182,33 @@ trasn/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/trasn.dir/build.make CMakeFiles/trasn.dir/build
 .PHONY : trasn/fast
 
+cuda_edit_dist.o: cuda_edit_dist.cu.o
+
+.PHONY : cuda_edit_dist.o
+
+# target to build an object file
+cuda_edit_dist.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/cuda_edit_dist.cu.o
+.PHONY : cuda_edit_dist.cu.o
+
+cuda_edit_dist.i: cuda_edit_dist.cu.i
+
+.PHONY : cuda_edit_dist.i
+
+# target to preprocess a source file
+cuda_edit_dist.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/cuda_edit_dist.cu.i
+.PHONY : cuda_edit_dist.cu.i
+
+cuda_edit_dist.s: cuda_edit_dist.cu.s
+
+.PHONY : cuda_edit_dist.s
+
+# target to generate assembly for a file
+cuda_edit_dist.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/cuda_edit_dist.cu.s
+.PHONY : cuda_edit_dist.cu.s
+
 main.o: main.cu.o
 
 .PHONY : main.o
@@ -208,33 +235,6 @@ main.s: main.cu.s
 main.cu.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/main.cu.s
 .PHONY : main.cu.s
-
-par_ed.o: par_ed.cu.o
-
-.PHONY : par_ed.o
-
-# target to build an object file
-par_ed.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/par_ed.cu.o
-.PHONY : par_ed.cu.o
-
-par_ed.i: par_ed.cu.i
-
-.PHONY : par_ed.i
-
-# target to preprocess a source file
-par_ed.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/par_ed.cu.i
-.PHONY : par_ed.cu.i
-
-par_ed.s: par_ed.cu.s
-
-.PHONY : par_ed.s
-
-# target to generate assembly for a file
-par_ed.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/par_edit.dir/build.make CMakeFiles/par_edit.dir/par_ed.cu.s
-.PHONY : par_ed.cu.s
 
 query.o: query.cu.o
 
@@ -302,12 +302,12 @@ help:
 	@echo "... par_edit"
 	@echo "... query"
 	@echo "... trasn"
+	@echo "... cuda_edit_dist.o"
+	@echo "... cuda_edit_dist.i"
+	@echo "... cuda_edit_dist.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... par_ed.o"
-	@echo "... par_ed.i"
-	@echo "... par_ed.s"
 	@echo "... query.o"
 	@echo "... query.i"
 	@echo "... query.s"

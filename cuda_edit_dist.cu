@@ -3,7 +3,7 @@
 #include <cassert>
 #include <ctime>
 
-//#define DEBUG
+#define DEBUG
 
 typedef float dist_t;
 typedef dist_t result_t;
@@ -25,25 +25,23 @@ cudaError_t checkCuda(cudaError_t result)
 #define MIN(x,y) ((x) < (y) ? (x) : (y)) //calculate minimum between two values
 
 
-__global__ void upper_diagonal(const char *seq1, const char *seq2, unsigned int l, result_t *d0, result_t* d1, result_t* d2) {
+__global__ void upper_diagonal(const char *seq1, const char *seq2, unsigned int d, result_t *d0, result_t* d1, result_t* d2) {
     auto i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i<=0 or i>=l) {
-        d2[i] = l;
+    if (i<=0 or i >= d) {
+        d2[i] = d;
     } else {
-        result_t t = seq1[i-1]!=seq2[l-i-1];
+        result_t t = seq1[i-1]!=seq2[d - i - 1];
         d2[i] = MIN(t + d0[i-1], MIN(d1[i],d1[i-1])+1 );
     }
 }
 
 // TODO debug the lower dimensional
-__global__ void lower_diagonal(const char *seq1, const char *seq2, unsigned int len, unsigned int l, result_t *d0, result_t* d1, result_t* d2) {
-    auto i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i<=0 or i>=l) {
-        d2[i] = l;
-    } else {
-        result_t t = seq1[len-i+1]!=seq2[len-l+i+1];
-        d2[i] = MIN(t + d0[i-1], MIN(d1[i],d1[i-1])+1 );
-    }
+__global__ void lower_diagonal(const char *seq1, const char *seq2, unsigned int len, unsigned int d, result_t *d0, result_t* d1, result_t* d2) {
+    int off = d - len, off2 = (d != len + 1);// diagonal: d
+    auto i = blockIdx.x * blockDim.x + threadIdx.x + off;
+
+    result_t t = seq1[i-1]!=seq2[d-i-1];
+    d2[i] = MIN(t + d0[i + off2], MIN(d1[i],d1[i+1])+1 );
 }
 
 void levenshtein_distance(char *s1, char *s2, unsigned int l1, unsigned int l2, std::vector<std::vector<unsigned int>> &dist) {
@@ -67,13 +65,13 @@ void levenshtein_distance(char *s1, char *s2, unsigned int l1, unsigned int l2, 
         }
     }
 #if defined(DEBUG) || defined(_DEBUG)
-        std::cout<<"The Levinstein distance is:"<<dist[l2][l1] << std::endl;
+    std::cout<<"The Levinstein distance is:"<<dist[l2][l1] << std::endl;
 #endif
 }
 
 int main() {
-    uint64_t blocksize = 128;
-    uint64_t len = (1<<16);
+    uint64_t blocksize = 1;
+    uint64_t len = (1<<2);
     unsigned int alphpabet_size = 20;
 
     // load sequences into pinnable memory
@@ -99,49 +97,43 @@ int main() {
     std::clock_t c_start, c_end;
 
 
-    result_t *mem, *d0, *d1, *d2, *tmp;
+    result_t *mem, *diag0, *diag1, *diag2, *tmp;
     uint64_t pitch = len + blocksize;                       // pad distances by at least blocksize
     bytes = 3* pitch * sizeof(result_t) ;                   // allocate 3 x pitch * size type
     checkCuda( cudaMalloc(&mem, bytes) );       // allocate on unified memory
     checkCuda(cudaMemset(mem, 2* len, bytes));   // initialize distances to maximum value 2*len
-    d0 = mem;
-    d1 = d0 + pitch;
-    d2 = d1 + pitch;
+    diag0 = mem;
+    diag1 = diag0 + pitch;
+    diag2 = diag1 + pitch;
 
     c_start = std::clock();
     printf("Computing the edit distance blocks... \n" );
 
 
-    uint64_t l;
-    for (l=0; l<=len; l++) {
-        upper_diagonal<<< (l + blocksize) / blocksize, blocksize >>>(s1, s2, l, d0, d1, d2);
+    uint64_t d;
+    for (d=0; d <= len; d++) {
+        upper_diagonal<<< (d + blocksize) / blocksize, blocksize >>>(s1, s2, d, diag0, diag1, diag2);
         checkCuda( cudaDeviceSynchronize() );
-        tmp = d0; d0 = d1; d1 = d2; d2 = tmp;
+        tmp = diag0; diag0 = diag1; diag1 = diag2; diag2 = tmp;
     }
-    dist_t *d_host, *d_host2;
+
+    for (d=len+1; d <= 2*len; d++) {
+        lower_diagonal<<< (2*len-d  + blocksize) / blocksize, blocksize >>>(s1, s2, len, d, diag0, diag1, diag2);
+        checkCuda( cudaDeviceSynchronize() );
+        tmp = diag0; diag0 = diag1; diag1 = diag2; diag2 = tmp;
+    }
+    dist_t *d_host;
     bytes = (len+1)* sizeof (dist_t);
     checkCuda( cudaMallocHost(&d_host, bytes) );
-    checkCuda( cudaMemcpy(d_host, d1, bytes, cudaMemcpyDeviceToHost) );
-    checkCuda(cudaMemset(mem, 2* len, bytes));   // initialize distances to maximum value 2*len
+    checkCuda( cudaMemcpy(d_host, diag1, bytes, cudaMemcpyDeviceToHost) );
+    checkCuda(cudaMemset(mem, 2* len, bytes));
 
-    for (l=0; l<=len; l++) {
-        lower_diagonal<<< (l + blocksize) / blocksize, blocksize >>>(s1, s2, len, l, d0, d1, d2);
-        checkCuda( cudaDeviceSynchronize() );
-        tmp = d0; d0 = d1; d1 = d2; d2 = tmp;
-    }
-    checkCuda( cudaMallocHost(&d_host2, bytes) );
-    checkCuda( cudaMemcpy(d_host2, d1, bytes, cudaMemcpyDeviceToHost) );
-    result_t result = 2 * len;
-    for (unsigned int i=0; i<=len; i++) {
-        result = MIN(result, d_host[i]+d_host2[i]);
-    }
-
-    printf("edit dist CUDA: %f\n", result);
+    printf("edit dist CUDA: %f\n", d_host[0]);
     auto gpu_time = 1.0 * (std::clock()-c_start) / CLOCKS_PER_SEC;
     printf("GPU time: %f s\n", gpu_time);
 
 #if defined(DEBUG) || defined(_DEBUG)
-        // check results
+    // check results
         std::vector<std::vector<unsigned int>> dist;
         c_start = std::clock();
 
@@ -162,7 +154,7 @@ int main() {
 #endif
 
 #if defined(_DEBUG)
-        printf("final dist:\n");
+    printf("final dist:\n");
         for (int i=0; i<=len; i++) {
             printf("%d ",d_host[i]);
         }

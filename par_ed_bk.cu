@@ -69,7 +69,7 @@ void levenshtein_distance(char *s1, char *s2, unsigned int l1, unsigned int l2, 
 
 int main() {
     uint64_t blocksize = 128;
-    uint64_t len = (1<<18);
+    uint64_t len = (1<<16);
     unsigned int alphpabet_size = 4;
 
     // load sequences into pinnable memory

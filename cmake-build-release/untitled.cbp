@@ -150,11 +150,14 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/amir/CLionProjects/cuda_test/main.cu">
+		<Unit filename="/home/amir/CLionProjects/cuda_test/cpu_edit_dist.cpp">
 			<Option target="main"/>
 		</Unit>
-		<Unit filename="/home/amir/CLionProjects/cuda_test/par_ed.cu">
+		<Unit filename="/home/amir/CLionProjects/cuda_test/cuda_edit_dist.cu">
 			<Option target="par_edit"/>
+		</Unit>
+		<Unit filename="/home/amir/CLionProjects/cuda_test/main.cu">
+			<Option target="main"/>
 		</Unit>
 		<Unit filename="/home/amir/CLionProjects/cuda_test/query.cu">
 			<Option target="query"/>
