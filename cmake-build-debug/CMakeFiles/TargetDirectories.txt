@@ -1,0 +1,6 @@
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/main.dir
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/par_edit.dir
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/query.dir
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/amir/CLionProjects/cuda_test/cmake-build-debug/CMakeFiles/trasn.dir

@@ -1,0 +1,1 @@
+/usr/lib/nvidia-cuda-toolkit/bin/g++  CMakeFiles/par_edit.dir/par_ed.cu.o -o par_edit  -lcudadevrt -lcudart_static  -L"/usr/lib/x86_64-linux-gnu/stubs" -L"/usr/lib/x86_64-linux-gnu" -lrt -lpthread -ldl

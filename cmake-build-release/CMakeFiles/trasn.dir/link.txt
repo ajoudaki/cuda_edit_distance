@@ -1,0 +1,1 @@
+/usr/lib/nvidia-cuda-toolkit/bin/g++  CMakeFiles/trasn.dir/transfer.cu.o -o trasn  -lcudadevrt -lcudart_static  -L"/usr/lib/x86_64-linux-gnu/stubs" -L"/usr/lib/x86_64-linux-gnu" -lrt -lpthread -ldl
